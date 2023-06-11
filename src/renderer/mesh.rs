@@ -14,12 +14,14 @@ pub struct Vertex {
     pub texcoords: Vec2,
 }
 
+#[derive(Clone)]
 pub struct Texture {
     pub id: u32,
     pub tex_type: TextureType,
     pub filepath: String,
 }
 
+#[derive(Clone)]
 pub enum TextureType {
     Diffuse,
     Specular,
