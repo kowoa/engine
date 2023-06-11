@@ -37,6 +37,13 @@ fn run(mut app: App) {
                     }
                 },
                 WindowEvent::CloseRequested => control_flow.set_exit(),
+                WindowEvent::KeyboardInput { input, .. } => {
+                    if let Some(key) = input.virtual_keycode {
+                        if key == winit::event::VirtualKeyCode::Escape {
+                            control_flow.set_exit();
+                        }
+                    }
+                }
                 _ => (),
             },
             Event::MainEventsCleared => {
