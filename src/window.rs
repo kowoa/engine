@@ -24,6 +24,7 @@ pub struct Window {
     gl_config: Config,
     gl_display: Display,
     not_current_gl_context: Option<NotCurrentContext>,
+    state: Option<(PossiblyCurrentContext, Surface<WindowSurface>, winit::window::Window)>,
 }
 
 impl Window {
@@ -113,14 +114,20 @@ impl Window {
                 gl_config,
                 gl_display,
                 not_current_gl_context,
+                state: None,
             },
             event_loop
         )
     }
     
+    pub fn swap_buffers(&self) {
+        if let Some((gl_context, gl_surface, window)) = &self.state {
+            gl_surface.swap_buffers(gl_context).unwrap();
+        }
+    }
+    
     pub fn on_resumed(&mut self,
         window_target: &EventLoopWindowTarget<()>,
-        state: &mut Option<(PossiblyCurrentContext, Surface<WindowSurface>, winit::window::Window)>,
         renderer: &mut Option<Renderer>
     ) {
         #[cfg(android_platform)]
@@ -153,19 +160,17 @@ impl Window {
             eprintln!("Error setting vsync: {res:?}");
         }
 
-        assert!(state.replace((gl_context, gl_surface, window)).is_none());
+        assert!(self.state.replace((gl_context, gl_surface, window)).is_none());
     }
     
-    pub fn on_suspended(&mut self,
-        state: &mut Option<(PossiblyCurrentContext, Surface<WindowSurface>, winit::window::Window)>,
-    ) {
+    pub fn on_suspended(&mut self) {
         // This event is only raised on Android, where the backing NativeWindow for a GL
         // Surface can appear and disappear at any moment.
         println!("Android window removed");
 
         // Destroy the GL Surface and un-current the GL Context before ndk-glue releases
         // the window back to the system.
-        let (gl_context, ..) = state.take().unwrap();
+        let (gl_context, ..) = self.state.take().unwrap();
         assert!(self.not_current_gl_context
             .replace(gl_context.make_not_current().unwrap())
             .is_none());
@@ -173,14 +178,13 @@ impl Window {
     
     pub fn on_resized(&self,
         size: PhysicalSize<u32>,
-        state: &mut Option<(PossiblyCurrentContext, Surface<WindowSurface>, winit::window::Window)>,
         renderer: &mut Option<Renderer>
     ) {
         // Some platforms like EGL require resizing GL surface to update the size
         // Notable platforms here are Wayland and macOS, other don't require it
         // and the function is no-op, but it's wise to resize it for portability
         // reasons.
-        if let Some((gl_context, gl_surface, _)) = &state {
+        if let Some((gl_context, gl_surface, _)) = &self.state {
             gl_surface.resize(
                 gl_context,
                 NonZeroU32::new(size.width).unwrap(),
