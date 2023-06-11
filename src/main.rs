@@ -19,11 +19,11 @@ use systems::*;
 
 
 fn main() {
-    let mut ecs = Ecs::new();
-
-    ecs.insert_resource(Time { current: 0.0, delta: 0.0 });
-    
-    run(ecs);
+    EcsBuilder::new()
+        .insert_resource(Time { current: 0.0, delta: 0.0 })
+        .add_system(SpawnCameraSys, "spawn_camera", &[])
+        .set_runner(run)
+        .run()
 }
 
 fn run(mut ecs: Ecs<'static, 'static>) {
@@ -71,5 +71,5 @@ fn run(mut ecs: Ecs<'static, 'static>) {
             },
             _ => (),
         }
-    })
+    });
 }

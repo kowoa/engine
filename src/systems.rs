@@ -8,6 +8,6 @@ impl<'a> System<'a> for SpawnCameraSys {
     type SystemData = ();
 
     fn run(&mut self, data: Self::SystemData) {
-        todo!()
+        println!("system running");
     }
 }
