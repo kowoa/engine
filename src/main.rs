@@ -4,6 +4,7 @@ use winit::event::{Event, WindowEvent};
 
 mod renderer;
 mod window;
+mod macros;
 
 fn main() {
     App::new()

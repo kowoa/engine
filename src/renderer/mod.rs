@@ -2,6 +2,8 @@ use std::ffi::{CString, CStr};
 
 use crate::window::Window;
 
+mod mesh;
+mod shader;
 
 pub struct Renderer {
     program: gl::types::GLuint,
