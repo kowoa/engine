@@ -1,7 +1,7 @@
 use std::{mem::size_of, ffi::c_void};
 
-use bevy::prelude::{Vec3, Vec2};
 use gl::types::GLsizeiptr;
+use glam::{Vec3, Vec2};
 
 use crate::offset_of;
 

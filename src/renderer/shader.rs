@@ -1,7 +1,7 @@
 use std::{ffi::CString, fs::File, io::Read, ptr};
 
-use bevy::prelude::Mat4;
 use gl::types::{GLint, GLchar};
+use glam::Mat4;
 
 pub struct Shader {
     pub id: u32

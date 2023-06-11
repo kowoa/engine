@@ -1,8 +1,15 @@
-use bevy::{prelude::*, time::TimePlugin};
-use renderer::Renderer;
+use specs::prelude::*;
 use winit::event::{Event, WindowEvent};
 
+mod common;
+use common::Time;
+
+mod ecs;
+use ecs::*;
+
 mod renderer;
+use renderer::Renderer;
+
 mod window;
 mod macros;
 
@@ -12,18 +19,17 @@ use systems::*;
 
 
 fn main() {
-    App::new()
-        .add_plugin(TimePlugin)
-        .add_startup_system(spawn_camera.in_base_set(StartupSet::Startup))
-        .add_startup_system(entity_checker.in_base_set(StartupSet::PostStartup))
-        .set_runner(run)
-        .run();
+    let mut ecs = Ecs::new();
+
+    ecs.insert_resource(Time { current: 0.0, delta: 0.0 });
+    
+    run(ecs);
 }
 
-fn run(mut app: App) {
+fn run(mut ecs: Ecs<'static, 'static>) {
     let (mut window, event_loop) = window::Window::new();
-    
     let mut renderer = None;
+
     event_loop.run(move |event, window_target, control_flow| {
         control_flow.set_wait();
         match event {
@@ -56,7 +62,7 @@ fn run(mut app: App) {
                 _ => (),
             },
             Event::MainEventsCleared => {
-                app.update();
+                ecs.dispatch();
 
                 let renderer = renderer.as_ref().unwrap();
                 renderer.draw();

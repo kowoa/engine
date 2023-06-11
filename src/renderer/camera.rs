@@ -1,6 +1,6 @@
-use bevy::prelude::*;
-use std::ptr;
+use glam::{Vec3, Mat4, Vec2};
 
+use crate::common::Time;
 
 const YAW: f32 = -90.0;
 const PITCH: f32 = 0.0;
@@ -16,7 +16,6 @@ pub enum CameraMoveDirection {
     Right,
 }
 
-#[derive(Component)]
 pub struct Camera {
     pub position: Vec3,
     pub forward: Vec3,
@@ -28,7 +27,6 @@ pub struct Camera {
     pub zoom: f32,
 }
 
-#[derive(Component)]
 pub struct CameraMovement {
     pub direction: CameraMoveDirection,
     pub speed: f32,
@@ -36,7 +34,6 @@ pub struct CameraMovement {
     pub rotation_speed: f32,
 }
 
-#[derive(Bundle)]
 pub struct CameraBundle {
     pub camera: Camera,
     pub movement: CameraMovement,
@@ -67,7 +64,7 @@ impl Camera {
     pub fn from_position(x: f32, y: f32, z: f32) -> Self {
         Camera {
             position: Vec3::new(x, y, z),
-            ..default()
+            ..Default::default()
         }
     }
     
@@ -90,8 +87,8 @@ impl Camera {
     ) {
         let mut x_offset = mouse_pos.x - prev_mouse_pos.x;
         let mut y_offset = -(mouse_pos.y - prev_mouse_pos.y);
-        x_offset *= cam_move.rotation_speed * time.delta_seconds();
-        y_offset *= cam_move.rotation_speed * time.delta_seconds();
+        x_offset *= cam_move.rotation_speed * time.delta;
+        y_offset *= cam_move.rotation_speed * time.delta;
         
         self.yaw += x_offset;
         self.pitch += y_offset;
@@ -118,7 +115,7 @@ impl Camera {
             Vec3::ZERO
         };
 
-        let delta_pos = movement.speed * time.delta_seconds();
+        let delta_pos = movement.speed * time.delta;
         self.position += dir_vector * delta_pos;
     }
 
@@ -139,8 +136,8 @@ impl Camera {
         &CameraMovement,
         time: &Time
     ) {
-        let delta_pitch = pitch * movement.rotation_speed * time.delta_seconds();
-        let delta_yaw = yaw * movement.rotation_speed * time.delta_seconds();
+        let delta_pitch = pitch * movement.rotation_speed * time.delta;
+        let delta_yaw = yaw * movement.rotation_speed * time.delta;
 
         self.pitch += delta_pitch;
         self.yaw += delta_yaw;

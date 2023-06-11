@@ -5,21 +5,12 @@ edition = "2021"
 
 [dependencies]
 gl = "0.14.0"
+glam = "0.24.0"
 glutin = "0.30.8"
 glutin-winit = "0.3.0"
 image = "0.24.6"
 raw-window-handle = "0.5.2"
+specs = "0.19.0"
 tobj = "4.0.0"
 winit = "0.28.6"
 
-[dependencies.bevy]
-version = "0.10"
-default-features = false
-
-# Enable a small amount of optimization in debug mode
-[profile.dev]
-opt-level = 1
-
-# Enable high optimizations for dependencies (incl. Bevy), but not for our code:
-[profile.dev.package."*"]
-opt-level = 3

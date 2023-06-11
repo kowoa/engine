@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use bevy::prelude::{Vec3, Vec2};
+use glam::{Vec3, Vec2};
 
 use super::{mesh::{Mesh, Texture, Vertex, TextureType}, shader::Shader, utils};
 
