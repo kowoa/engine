@@ -2,10 +2,11 @@ use std::ffi::{CString, CStr};
 
 use crate::window::Window;
 
-mod mesh;
-mod model;
-mod shader;
-mod utils;
+pub mod camera;
+pub mod mesh;
+pub mod model;
+pub mod shader;
+pub mod utils;
 
 pub struct Renderer {
     program: gl::types::GLuint,
