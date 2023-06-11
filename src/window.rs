@@ -20,11 +20,11 @@ use crate::ecs::{EcsBuilder, EcsBuilderState, Plugin};
 
 pub struct WindowPlugin;
 impl Plugin for WindowPlugin {
-    fn build<E>(&self, ecs_builder: &mut EcsBuilder<E>)
+    fn build<'a, 'b, E>(&self, ecs_builder: EcsBuilder<'a, 'b, E>) -> EcsBuilder<'a, 'b, E>
         where E: EcsBuilderState {
         ecs_builder
             .add_system(CreateWindowSys, "create_window", &[])
-            .add_barrier();
+            .add_barrier()
     }
 }
 

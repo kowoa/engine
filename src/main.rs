@@ -20,9 +20,9 @@ use systems::*;
 
 fn main() {
     EcsBuilder::new()
-        .with_resource(Time { current: 0.0, delta: 0.0 })
-        .with_system(SpawnCameraSys, "spawn_camera", &[])
-        .with_runner(runner)
+        .add_resource(Time { current: 0.0, delta: 0.0 })
+        .add_system(SpawnCameraSys, "spawn_camera", &[])
+        .set_runner(runner)
         .run();
 }
 
