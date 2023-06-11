@@ -1,8 +1,6 @@
-use std::ffi::{CStr, CString};
+use std::ffi::{CString, self};
 use std::num::NonZeroU32;
-use std::ops::Deref;
 
-use bevy::prelude::App;
 use winit::dpi::PhysicalSize;
 use winit::event_loop::{EventLoop, EventLoopWindowTarget};
 use winit::window::WindowBuilder;
@@ -16,8 +14,6 @@ use glutin::prelude::*;
 use glutin::surface::{SwapInterval, Surface, WindowSurface};
 
 use glutin_winit::{self, DisplayBuilder, GlWindow};
-
-use crate::renderer::Renderer;
 
 pub struct Window {
     gl_config: Config,
@@ -129,9 +125,13 @@ impl Window {
         }
     }
     
+    pub fn get_proc_address(&self, symbol: &str) -> *const ffi::c_void {
+        let symbol = CString::new(symbol).unwrap();
+        self.gl_display.get_proc_address(symbol.as_c_str())
+    }
+    
     pub fn on_resumed(&mut self,
         window_target: &EventLoopWindowTarget<()>,
-        renderer: &mut Option<Renderer>
     ) {
         #[cfg(android_platform)]
         println!("Android window available");
@@ -150,11 +150,6 @@ impl Window {
         // Make it current.
         let gl_context =
             self.not_current_gl_context.take().unwrap().make_current(&gl_surface).unwrap();
-
-        // The context needs to be current for the Renderer to set up shaders and
-        // buffers. It also performs function loading, which needs a current context on
-        // WGL.
-        renderer.get_or_insert_with(|| Renderer::new(&self.gl_display));
 
         // Try setting vsync.
         if let Err(res) = gl_surface
@@ -183,10 +178,7 @@ impl Window {
         );
     }
     
-    pub fn on_resized(&self,
-        size: PhysicalSize<u32>,
-        renderer: &mut Option<Renderer>
-    ) {
+    pub fn resize(&self, size: PhysicalSize<u32>) {
         // Some platforms like EGL require resizing GL surface to update the size
         // Notable platforms here are Wayland and macOS, other don't require it
         // and the function is no-op, but it's wise to resize it for portability
@@ -198,8 +190,6 @@ impl Window {
                 NonZeroU32::new(size.width).unwrap(),
                 NonZeroU32::new(size.height).unwrap(),
             );
-            let renderer = renderer.as_ref().unwrap();
-            renderer.resize(size.width as i32, size.height as i32);
         }
     }
 }

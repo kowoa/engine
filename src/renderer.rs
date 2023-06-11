@@ -1,6 +1,6 @@
 use std::ffi::{CString, CStr};
 
-use glutin::prelude::GlDisplay;
+use crate::window::Window;
 
 
 pub struct Renderer {
@@ -10,12 +10,9 @@ pub struct Renderer {
 }
 
 impl Renderer {
-    pub fn new<D: GlDisplay>(gl_display: &D) -> Self {
+    pub fn new(window: &Window) -> Self {
         unsafe {
-            gl::load_with(|symbol| {
-                let symbol = CString::new(symbol).unwrap();
-                gl_display.get_proc_address(symbol.as_c_str()).cast()
-            });
+            gl::load_with(|symbol| window.get_proc_address(symbol));
 
             if let Some(renderer) = get_gl_string(gl::RENDERER) {
                 println!("Running on {}", renderer.to_string_lossy());
