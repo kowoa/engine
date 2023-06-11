@@ -20,11 +20,12 @@ use glutin_winit::{self, DisplayBuilder, GlWindow};
 use crate::renderer::Renderer;
 
 pub struct Window {
-    window: Option<winit::window::Window>,
     gl_config: Config,
     gl_display: Display,
     not_current_gl_context: Option<NotCurrentContext>,
-    state: Option<(PossiblyCurrentContext, Surface<WindowSurface>, winit::window::Window)>,
+    gl_context: Option<PossiblyCurrentContext>,
+    gl_surface: Option<Surface<WindowSurface>>,
+    window: Option<winit::window::Window>,
 }
 
 impl Window {
@@ -110,18 +111,20 @@ impl Window {
         
         (
             Self {
-                window,
                 gl_config,
                 gl_display,
                 not_current_gl_context,
-                state: None,
+                gl_context: None,
+                gl_surface: None,
+                window,
             },
             event_loop
         )
     }
     
     pub fn swap_buffers(&self) {
-        if let Some((gl_context, gl_surface, window)) = &self.state {
+        if let (Some(gl_context), Some(gl_surface))
+            = (&self.gl_context, &self.gl_surface) {
             gl_surface.swap_buffers(gl_context).unwrap();
         }
     }
@@ -159,8 +162,11 @@ impl Window {
         {
             eprintln!("Error setting vsync: {res:?}");
         }
-
-        assert!(self.state.replace((gl_context, gl_surface, window)).is_none());
+        
+        assert!(self.gl_context.replace(gl_context).is_none()
+            && self.gl_surface.replace(gl_surface).is_none()
+            && self.window.replace(window).is_none()
+        );
     }
     
     pub fn on_suspended(&mut self) {
@@ -170,10 +176,11 @@ impl Window {
 
         // Destroy the GL Surface and un-current the GL Context before ndk-glue releases
         // the window back to the system.
-        let (gl_context, ..) = self.state.take().unwrap();
+        let gl_context = self.gl_context.take().unwrap();
         assert!(self.not_current_gl_context
             .replace(gl_context.make_not_current().unwrap())
-            .is_none());
+            .is_none()
+        );
     }
     
     pub fn on_resized(&self,
@@ -184,7 +191,8 @@ impl Window {
         // Notable platforms here are Wayland and macOS, other don't require it
         // and the function is no-op, but it's wise to resize it for portability
         // reasons.
-        if let Some((gl_context, gl_surface, _)) = &self.state {
+        if let (Some(gl_context), Some(gl_surface))
+            = (&self.gl_context, &self.gl_surface) {
             gl_surface.resize(
                 gl_context,
                 NonZeroU32::new(size.width).unwrap(),
