@@ -1,6 +1,7 @@
 use std::ffi::{CString, self};
 use std::num::NonZeroU32;
 
+use specs::System;
 use winit::dpi::PhysicalSize;
 use winit::event_loop::{EventLoop, EventLoopWindowTarget};
 use winit::window::WindowBuilder;
@@ -14,6 +15,27 @@ use glutin::prelude::*;
 use glutin::surface::{SwapInterval, Surface, WindowSurface};
 
 use glutin_winit::{self, DisplayBuilder, GlWindow};
+
+use crate::ecs::{EcsBuilder, EcsBuilderState, Plugin};
+
+pub struct WindowPlugin;
+impl Plugin for WindowPlugin {
+    fn build<E>(&self, ecs_builder: &mut EcsBuilder<E>)
+        where E: EcsBuilderState {
+        ecs_builder
+            .add_system(CreateWindowSys, "create_window", &[])
+            .add_barrier();
+    }
+}
+
+pub struct CreateWindowSys;
+impl<'a> System<'a> for CreateWindowSys {
+    type SystemData = ();
+
+    fn run(&mut self, data: Self::SystemData) {
+        println!("running create window");
+    }
+}
 
 pub struct Window {
     gl_config: Config,

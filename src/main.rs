@@ -20,13 +20,13 @@ use systems::*;
 
 fn main() {
     EcsBuilder::new()
-        .insert_resource(Time { current: 0.0, delta: 0.0 })
-        .add_system(SpawnCameraSys, "spawn_camera", &[])
-        .set_runner(run)
-        .run()
+        .with_resource(Time { current: 0.0, delta: 0.0 })
+        .with_system(SpawnCameraSys, "spawn_camera", &[])
+        .with_runner(runner)
+        .run();
 }
 
-fn run(mut ecs: Ecs<'static, 'static>) {
+fn runner(mut ecs: Ecs<'static, 'static>) {
     let (mut window, event_loop) = window::Window::new();
     let mut renderer = None;
 
