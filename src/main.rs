@@ -1,11 +1,11 @@
-use std::{rc::Rc, sync::{Mutex, Arc}};
+use std::{rc::Rc, sync::{Mutex, Arc}, time::{SystemTime, UNIX_EPOCH, Instant, Duration}};
 
-use bevy_ecs::{schedule::{ScheduleLabel, Schedule}, system::{Res, NonSend}};
+use bevy_ecs::{schedule::{ScheduleLabel, Schedule}, system::{Res, NonSend}, prelude::Events};
 use input::{process_input_event, Input, InputEvent};
-use winit::event::{Event, WindowEvent};
+use winit::event::{Event, WindowEvent, KeyboardInput};
 
 mod common;
-use common::Time;
+use common::{Time, update_time_res};
 
 mod ecs;
 use ecs::*;
@@ -34,7 +34,7 @@ fn draw(renderer: NonSend<Arc<Mutex<Option<Renderer>>>>) {
 
 fn main() {
     EcsBuilder::new()
-        .add_resource(Time { current: 0.0, delta: 0.0 })
+        .add_resource(Time { current: Instant::now(), delta: Duration::ZERO })
         .add_system(setup_graphics, StartupSingleThreaded)
         .add_system(draw, Render)
         .set_runner(runner)
@@ -70,15 +70,7 @@ fn runner(mut ecs: Ecs) {
             },
             Event::Suspended => window.on_suspended(),
             Event::WindowEvent { event, .. } => {
-                // InputEvents may be sent out too often since this only handles one input event at a time
-                let mut input_res = Input::default();
-                let mut input_changed = false;
-
-                process_input_event(&event, &mut ecs, &mut input_res, &mut input_changed);
-                
-                if input_changed {
-                    ecs.send_event(InputEvent(input_res));
-                }
+                process_input_event(&event, &mut ecs);
 
                 match event {
                     WindowEvent::Resized(size) => if size.width != 0 && size.height != 0 {
@@ -101,8 +93,12 @@ fn runner(mut ecs: Ecs) {
                 }
             },
             Event::MainEventsCleared => {
+                update_time_res(Instant::now(), &mut ecs);
+
+                ecs.run_schedule(PreUpdate);
                 ecs.run_schedule(Update);
                 ecs.run_schedule(Render);
+
                 window.swap_buffers();
             },
             _ => (),

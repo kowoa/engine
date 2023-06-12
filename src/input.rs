@@ -39,12 +39,13 @@ impl Default for Input {
 pub fn process_input_event(
     event: &WindowEvent,
     ecs: &mut Ecs,
-    input_res: &mut Input,
-    input_changed: &mut bool,
 ) {
+    let mut input_res = Input::default();
+    let mut input_changed = false;
+
     match event {
         WindowEvent::CursorMoved { position, .. } => {
-            *input_changed = true;
+            input_changed = true;
             let mut states = ecs.get_resource_mut::<InputStates>().unwrap();
             let pos = Vec2::new(position.x as f32, position.y as f32);
             
@@ -58,20 +59,20 @@ pub fn process_input_event(
             states.curr_mouse_pos = pos;
         },
         WindowEvent::MouseWheel { delta, .. } => {
-            *input_changed = true;
+            input_changed = true;
             match delta {
                 MouseScrollDelta::LineDelta(_, y) => input_res.mouse_scroll_delta = *y,
                 MouseScrollDelta::PixelDelta(pos) => input_res.mouse_scroll_delta = pos.y as f32,
             }
         },
         WindowEvent::CursorEntered { .. } => {
-            *input_changed = true;
+            input_changed = true;
             let mut states = ecs.get_resource_mut::<InputStates>().unwrap();
             states.first_mouse = true;
         },
         WindowEvent::KeyboardInput { input, .. } => {
             if let Some(key) = input.virtual_keycode {
-                *input_changed = true;
+                input_changed = true;
                 match input.state {
                     ElementState::Pressed => {
                         input_res.keydowns.get_or_insert(HashSet::new());
@@ -89,5 +90,9 @@ pub fn process_input_event(
             }
         }
         _ => ()
+    }
+
+    if input_changed {
+        ecs.send_event(InputEvent(input_res));
     }
 }

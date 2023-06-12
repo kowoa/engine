@@ -87,8 +87,8 @@ impl Camera {
     ) {
         let mut x_offset = mouse_pos.x - prev_mouse_pos.x;
         let mut y_offset = -(mouse_pos.y - prev_mouse_pos.y);
-        x_offset *= cam_move.rotation_speed * time.delta;
-        y_offset *= cam_move.rotation_speed * time.delta;
+        x_offset *= cam_move.rotation_speed * time.delta.as_millis() as f32;
+        y_offset *= cam_move.rotation_speed * time.delta.as_millis() as f32;
         
         self.yaw += x_offset;
         self.pitch += y_offset;
@@ -115,7 +115,7 @@ impl Camera {
             Vec3::ZERO
         };
 
-        let delta_pos = movement.speed * time.delta;
+        let delta_pos = movement.speed * time.delta.as_millis() as f32;
         self.position += dir_vector * delta_pos;
     }
 
@@ -136,8 +136,8 @@ impl Camera {
         &CameraMovement,
         time: &Time
     ) {
-        let delta_pitch = pitch * movement.rotation_speed * time.delta;
-        let delta_yaw = yaw * movement.rotation_speed * time.delta;
+        let delta_pitch = pitch * movement.rotation_speed * time.delta.as_millis() as f32;
+        let delta_yaw = yaw * movement.rotation_speed * time.delta.as_millis() as f32;
 
         self.pitch += delta_pitch;
         self.yaw += delta_yaw;

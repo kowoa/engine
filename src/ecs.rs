@@ -10,6 +10,9 @@ pub struct StartupSingleThreaded;
 pub struct Startup;
 
 #[derive(ScheduleLabel, Hash, Debug, Eq, PartialEq, Clone)]
+pub struct PreUpdate;
+
+#[derive(ScheduleLabel, Hash, Debug, Eq, PartialEq, Clone)]
 pub struct Update;
 
 #[derive(ScheduleLabel, Hash, Debug, Eq, PartialEq, Clone)]
@@ -49,6 +52,7 @@ impl EcsBuilder<WithoutRunner> {
                 startup_st
             }, StartupSingleThreaded).unwrap()
             .add_schedule(Schedule::new(), Startup).unwrap()
+            .add_schedule(Schedule::new(), PreUpdate).unwrap()
             .add_schedule(Schedule::new(), Update).unwrap()
             .add_schedule(Schedule::new(), Render).unwrap()
     }
