@@ -16,8 +16,6 @@ mod macros;
 mod systems;
 use systems::*;
 
-#[derive(ScheduleLabel, Hash, Debug, Eq, PartialEq, Clone)]
-struct Startup;
 
 fn test_system() {
     println!("testing");
@@ -25,7 +23,6 @@ fn test_system() {
 
 fn main() {
     EcsBuilder::new()
-        .add_schedule(Startup)
         .add_resource(Time { current: 0.0, delta: 0.0 })
         .add_system(test_system, Startup)
         .set_runner(runner)
@@ -33,10 +30,11 @@ fn main() {
 }
 
 fn runner(mut ecs: Ecs) {
-    ecs.run_schedule(Startup);
-
     let (mut window, event_loop) = window::Window::new();
     let mut renderer = None;
+
+    ecs.run_schedule(StartupSingleThreaded);
+    ecs.run_schedule(Startup);
 
     event_loop.run(move |event, window_target, control_flow| {
         control_flow.set_wait();
@@ -70,6 +68,9 @@ fn runner(mut ecs: Ecs) {
                 _ => (),
             },
             Event::MainEventsCleared => {
+                ecs.run_schedule(Update);
+                ecs.run_schedule(Render);
+                
                 let renderer = renderer.as_ref().unwrap();
                 renderer.draw();
 

@@ -166,9 +166,3 @@ impl Default for CameraMovement {
         }
     }
 }
-
-impl Default for CameraBundle {
-    fn default() -> Self {
-        Self { camera: Camera::default(), movement: CameraMovement::default() }
-    }
-}

@@ -1,5 +1,7 @@
 use std::ffi::{CString, CStr};
 
+use bevy_ecs::system::Resource;
+
 use crate::window::Window;
 
 pub mod camera;
@@ -8,6 +10,7 @@ pub mod model;
 pub mod shader;
 pub mod utils;
 
+#[derive(Resource)]
 pub struct Renderer {
     program: gl::types::GLuint,
     vao: gl::types::GLuint,
