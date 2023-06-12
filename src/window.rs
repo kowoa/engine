@@ -152,6 +152,7 @@ impl Window {
 
         let window = self.window.take().unwrap_or_else(|| {
             let window_builder = WindowBuilder::new()
+                .with_inner_size(PhysicalSize::new(window_info.width, window_info.height))
                 .with_transparent(true);
             glutin_winit::finalize_window(window_target, window_builder, &self.gl_config)
                 .unwrap()
