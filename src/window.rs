@@ -1,7 +1,6 @@
 use std::ffi::{CString, self};
 use std::num::NonZeroU32;
 
-use specs::System;
 use winit::dpi::PhysicalSize;
 use winit::event_loop::{EventLoop, EventLoopWindowTarget};
 use winit::window::WindowBuilder;
@@ -20,20 +19,9 @@ use crate::ecs::{EcsBuilder, EcsBuilderState, Plugin};
 
 pub struct WindowPlugin;
 impl Plugin for WindowPlugin {
-    fn build<'a, 'b, E>(&self, ecs_builder: EcsBuilder<'a, 'b, E>) -> EcsBuilder<'a, 'b, E>
+    fn build<E>(&self, ecs_builder: EcsBuilder<E>) -> EcsBuilder<E>
         where E: EcsBuilderState {
         ecs_builder
-            .add_system(CreateWindowSys, "create_window", &[])
-            .add_barrier()
-    }
-}
-
-pub struct CreateWindowSys;
-impl<'a> System<'a> for CreateWindowSys {
-    type SystemData = ();
-
-    fn run(&mut self, data: Self::SystemData) {
-        println!("running create window");
     }
 }
 

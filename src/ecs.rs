@@ -1,92 +1,77 @@
 use std::marker::PhantomData;
+use bevy_ecs::{prelude::*, schedule::ScheduleLabel};
 
-use specs::prelude::*;
-
-pub struct Ecs<'a, 'b> {
-    world: World,
-    dispatcher: Dispatcher<'a, 'b>,
-}
-
-impl<'a, 'b> Ecs<'a, 'b> {
-    pub fn dispatch(&mut self) {
-        self.dispatcher.dispatch(&self.world);
-    }
-}
+pub type Ecs = World;
 
 pub trait EcsBuilderState {}
-
-pub struct WithRunner;
-impl EcsBuilderState for WithRunner {}
 
 pub struct WithoutRunner;
 impl EcsBuilderState for WithoutRunner {}
 
-pub struct EcsBuilder<'a, 'b, E: EcsBuilderState> {
+pub struct WithRunner;
+impl EcsBuilderState for WithRunner {}
+
+pub struct EcsBuilder<E: EcsBuilderState> {
     world: World,
-    dispatcher_builder: DispatcherBuilder<'a, 'b>,
-    runner: Option<fn(Ecs<'a, 'b>)>,
+    schedules: Schedules,
+    runner: Option<fn(Ecs)>,
     state: PhantomData<E>
 }
 
-// Common methods for EcsBuilder
-impl<'a, 'b, E: EcsBuilderState> EcsBuilder<'a, 'b, E> {
-    pub fn add_resource<R>(mut self, resource: R) -> Self
-        where R: Resource {
-        self.world.insert(resource);
-        self
-    }
-    
-    pub fn add_plugin<P>(self, plugin: P) -> Self
-        where P: Plugin {
-        plugin.build(self)
-    }
-    
-    pub fn add_system<S>(mut self, system: S, name: &str, dep: &[&str]) -> Self
-        where S: for<'c> System<'c> + Send + 'a {
-        self.dispatcher_builder.add(system, name, dep);
-        self
-    }
-
-    pub fn add_barrier(mut self) -> Self {
-        self.dispatcher_builder.add_barrier();
-        self
-    }
-}
-
-// Methods for EcsBuilder in the WithRunner state
-impl EcsBuilder<'_, '_, WithRunner> {
-    pub fn run(self) {
-        let mut world = self.world;
-        let mut dispatcher = self.dispatcher_builder.build();
-        dispatcher.setup(&mut world);
-        (self.runner.unwrap())(Ecs { world, dispatcher });
-    }
-}
-
 // Methods for EcsBuilder in the WithoutRunner state
-impl<'a, 'b> EcsBuilder<'a, 'b, WithoutRunner> {
+impl EcsBuilder<WithoutRunner> {
     pub fn new() -> Self {
         EcsBuilder {
             world: World::new(),
-            dispatcher_builder: DispatcherBuilder::new(),
+            schedules: Schedules::new(),
             runner: None,
             state: PhantomData,
         }
     }
 
-    pub fn set_runner(self, runner: fn(Ecs<'a, 'b>)) -> EcsBuilder<'a, 'b, WithRunner> {
+    pub fn set_runner(self, runner: fn(Ecs)) -> EcsBuilder<WithRunner> {
         EcsBuilder {
             world: self.world,
-            dispatcher_builder: self.dispatcher_builder,
+            schedules: self.schedules,
             runner: Some(runner),
             state: PhantomData,
         }
     }
+
+    pub fn add_resource<R: Resource>(mut self, resource: R) -> Self {
+        self.world.insert_resource(resource);
+        self
+    }
+    
+    pub fn add_plugin<P: Plugin>(self, plugin: P) -> Self {
+        plugin.build(self)
+    }
+    
+    pub fn add_schedule(mut self, label: impl ScheduleLabel) -> Self {
+        self.schedules.insert(label, Schedule::new());
+        self
+    }
+    
+    pub fn add_system<S>(mut self,
+        system: impl IntoSystemConfig<S>,
+        label: impl ScheduleLabel
+    ) -> Self {
+        let schedule = self.schedules.get_mut(&label).unwrap();
+        schedule.add_system(system);
+        self
+    }
 }
 
+// Methods for EcsBuilder in the WithRunner state
+impl EcsBuilder<WithRunner> {
+    pub fn run(mut self) {
+        self.world.insert_resource(self.schedules);
+        (self.runner.unwrap())(self.world);
+    }
+}
 
 pub trait Plugin {
     /// Configure the Ecs to which this plugin is added
-    fn build<'a, 'b, E>(&self, ecs_builder: EcsBuilder<'a, 'b, E>) -> EcsBuilder<'a, 'b, E>
+    fn build<E>(&self, ecs_builder: EcsBuilder<E>) -> EcsBuilder<E>
         where E: EcsBuilderState;
 }

@@ -1,4 +1,4 @@
-use specs::prelude::*;
+use bevy_ecs::schedule::{ScheduleLabel, Schedule};
 use winit::event::{Event, WindowEvent};
 
 mod common;
@@ -16,17 +16,25 @@ mod macros;
 mod systems;
 use systems::*;
 
+#[derive(ScheduleLabel, Hash, Debug, Eq, PartialEq, Clone)]
+struct Startup;
 
+fn test_system() {
+    println!("testing");
+}
 
 fn main() {
     EcsBuilder::new()
+        .add_schedule(Startup)
         .add_resource(Time { current: 0.0, delta: 0.0 })
-        .add_system(SpawnCameraSys, "spawn_camera", &[])
+        .add_system(test_system, Startup)
         .set_runner(runner)
         .run();
 }
 
-fn runner(mut ecs: Ecs<'static, 'static>) {
+fn runner(mut ecs: Ecs) {
+    ecs.run_schedule(Startup);
+
     let (mut window, event_loop) = window::Window::new();
     let mut renderer = None;
 
@@ -62,8 +70,6 @@ fn runner(mut ecs: Ecs<'static, 'static>) {
                 _ => (),
             },
             Event::MainEventsCleared => {
-                ecs.dispatch();
-
                 let renderer = renderer.as_ref().unwrap();
                 renderer.draw();
 
