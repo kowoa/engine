@@ -1,6 +1,6 @@
 use std::{rc::Rc, sync::{Mutex, Arc}, time::{SystemTime, UNIX_EPOCH, Instant, Duration}};
 
-use bevy_ecs::{schedule::{ScheduleLabel, Schedule}, system::{Res, NonSend}, prelude::Events};
+use bevy_ecs::{schedule::{ScheduleLabel, Schedule}, system::{Res, NonSend}, prelude::Events, world::World};
 use input::{process_input_event, Input, InputEvent};
 use winit::event::{Event, WindowEvent, KeyboardInput};
 
@@ -27,10 +27,11 @@ fn main() {
         .add_system(renderer::systems::init, StartupSingleThreaded)
         .add_system(renderer::systems::draw, Render)
         .set_runner(runner)
+        .build()
         .run();
 }
 
-fn runner(mut ecs: Ecs) {
+fn runner(mut world: World) {
     let (mut window, event_loop) = window::Window::new();
 
     let mut renderer_initialized = false;
@@ -46,14 +47,14 @@ fn runner(mut ecs: Ecs) {
                 window.on_resumed(window_target);
 
                 // Run startup schedules
-                ecs.run_schedule(StartupSingleThreaded); // Renderer should be initialized here
-                ecs.run_schedule(Startup); // App logic should be initialized here
+                world.run_schedule(StartupSingleThreaded); // Renderer should be initialized here
+                world.run_schedule(Startup); // App logic should be initialized here
                 
                 renderer_initialized = true;
             },
             Event::Suspended => window.on_suspended(),
             Event::WindowEvent { event, .. } => {
-                process_input_event(&event, &mut ecs);
+                process_input_event(&event, &mut world);
 
                 match event {
                     WindowEvent::Resized(size) => if size.width != 0 && size.height != 0 {
@@ -75,11 +76,11 @@ fn runner(mut ecs: Ecs) {
                 }
             },
             Event::MainEventsCleared => {
-                update_time_res(Instant::now(), &mut ecs);
+                update_time_res(Instant::now(), &mut world);
 
-                ecs.run_schedule(PreUpdate);
-                ecs.run_schedule(Update);
-                ecs.run_schedule(Render);
+                world.run_schedule(PreUpdate);
+                world.run_schedule(Update);
+                world.run_schedule(Render);
 
                 window.swap_buffers();
             },

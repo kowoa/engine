@@ -1,10 +1,8 @@
 use std::collections::HashSet;
 
-use bevy_ecs::system::Resource;
+use bevy_ecs::{system::Resource, world::World};
 use glam::Vec2;
 use winit::event::{WindowEvent, VirtualKeyCode, ElementState, MouseScrollDelta};
-
-use crate::ecs::Ecs;
 
 #[derive(Resource)]
 pub struct InputStates {
@@ -38,7 +36,7 @@ impl Default for Input {
 /// Redirect the window's input events into the Input resource
 pub fn process_input_event(
     event: &WindowEvent,
-    ecs: &mut Ecs,
+    world: &mut World,
 ) {
     let mut input_res = Input::default();
     let mut input_changed = false;
@@ -46,7 +44,7 @@ pub fn process_input_event(
     match event {
         WindowEvent::CursorMoved { position, .. } => {
             input_changed = true;
-            let mut states = ecs.get_resource_mut::<InputStates>().unwrap();
+            let mut states = world.get_resource_mut::<InputStates>().unwrap();
             let pos = Vec2::new(position.x as f32, position.y as f32);
             
             if states.first_mouse {
@@ -67,7 +65,7 @@ pub fn process_input_event(
         },
         WindowEvent::CursorEntered { .. } => {
             input_changed = true;
-            let mut states = ecs.get_resource_mut::<InputStates>().unwrap();
+            let mut states = world.get_resource_mut::<InputStates>().unwrap();
             states.first_mouse = true;
         },
         WindowEvent::KeyboardInput { input, .. } => {
@@ -77,13 +75,13 @@ pub fn process_input_event(
                     ElementState::Pressed => {
                         input_res.keydowns.get_or_insert(HashSet::new());
                         input_res.keydowns.as_mut().unwrap().insert(key);
-                        let mut states = ecs.get_resource_mut::<InputStates>().unwrap();
+                        let mut states = world.get_resource_mut::<InputStates>().unwrap();
                         states.keyholds.insert(key);
                     },
                     ElementState::Released => {
                         input_res.keyups.get_or_insert(HashSet::new());
                         input_res.keyups.as_mut().unwrap().insert(key);
-                        let mut states = ecs.get_resource_mut::<InputStates>().unwrap();
+                        let mut states = world.get_resource_mut::<InputStates>().unwrap();
                         assert!(states.keyholds.remove(&key));
                     },
                 }
@@ -93,6 +91,6 @@ pub fn process_input_event(
     }
 
     if input_changed {
-        ecs.send_event(InputEvent(input_res));
+        world.send_event(InputEvent(input_res));
     }
 }

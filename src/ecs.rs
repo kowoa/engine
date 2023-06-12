@@ -19,8 +19,16 @@ pub struct Update;
 pub struct Render;
 /* -------------- */
 
+pub struct Ecs {
+    world: World,
+    runner: fn(World),
+}
 
-pub type Ecs = World;
+impl Ecs {
+    pub fn run(self) {
+        (self.runner)(self.world);
+    }
+}
 
 pub trait EcsBuilderState {}
 
@@ -33,11 +41,11 @@ impl EcsBuilderState for Complete {}
 pub struct EcsBuilder<E: EcsBuilderState> {
     world: World,
     schedules: Schedules,
-    runner: Option<fn(Ecs)>,
+    runner: Option<fn(World)>,
     state: PhantomData<E>
 }
 
-// Methods for EcsBuilder in the Incomplete state
+// EcsBuilder can only transition to the Complete state once set_runner is called.
 impl EcsBuilder<Incomplete> {
     pub fn new() -> Self {
         EcsBuilder {
@@ -60,9 +68,10 @@ impl EcsBuilder<Incomplete> {
                 render
             }, Render)
     }
+    
 
     // Transition to the Complete state once runner is set
-    pub fn set_runner(self, runner: fn(Ecs)) -> EcsBuilder<Complete> {
+    pub fn set_runner(self, runner: fn(World)) -> EcsBuilder<Complete> {
         EcsBuilder {
             world: self.world,
             schedules: self.schedules,
@@ -106,9 +115,12 @@ impl EcsBuilder<Incomplete> {
 
 // Methods for EcsBuilder in the Complete state
 impl EcsBuilder<Complete> {
-    pub fn run(mut self) {
+    pub fn build(mut self) -> Ecs {
         self.world.insert_resource(self.schedules);
-        (self.runner.unwrap())(self.world);
+        Ecs {
+            world: self.world,
+            runner: self.runner.unwrap(),
+        }
     }
 }
 
