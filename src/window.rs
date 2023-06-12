@@ -1,6 +1,7 @@
 use std::ffi::{CString, self};
 use std::num::NonZeroU32;
 
+use bevy_ecs::system::Resource;
 use winit::dpi::PhysicalSize;
 use winit::event_loop::{EventLoop, EventLoopWindowTarget};
 use winit::window::WindowBuilder;
@@ -15,6 +16,14 @@ use glutin::surface::{SwapInterval, Surface, WindowSurface};
 
 use glutin_winit::{self, DisplayBuilder, GlWindow};
 
+
+#[derive(Resource, Clone)]
+pub struct WindowInfo {
+    pub width: u32,
+    pub height: u32,
+    pub title: &'static str,
+}
+
 pub struct Window {
     gl_config: Config,
     gl_display: Display,
@@ -25,7 +34,7 @@ pub struct Window {
 }
 
 impl Window {
-    pub fn new() -> (Self, EventLoop<()>) {
+    pub fn new(window_info: &WindowInfo) -> (Self, EventLoop<()>) {
         let event_loop = EventLoop::new();
 
         // Only windows requires the window to be present before creating the display.
@@ -34,7 +43,11 @@ impl Window {
         // XXX if you don't care about running on android or so you can safely remove
         // this condition and always pass the window builder.
         let window_builder =
-            if cfg!(wgl_backend) { Some(WindowBuilder::new().with_transparent(true)) } else { None };
+            if cfg!(wgl_backend) {
+                Some(WindowBuilder::new()
+                    .with_inner_size(PhysicalSize::new(window_info.width, window_info.height))
+                    .with_transparent(true))
+            } else { None };
 
         // The template will match only the configurations supporting rendering
         // to windows.
@@ -130,14 +143,16 @@ impl Window {
         self.gl_display.get_proc_address(symbol.as_c_str())
     }
     
-    pub fn on_resumed(&mut self,
+    pub fn resume(&mut self,
         window_target: &EventLoopWindowTarget<()>,
+        window_info: &WindowInfo,
     ) {
         #[cfg(android_platform)]
         println!("Android window available");
 
         let window = self.window.take().unwrap_or_else(|| {
-            let window_builder = WindowBuilder::new().with_transparent(true);
+            let window_builder = WindowBuilder::new()
+                .with_transparent(true);
             glutin_winit::finalize_window(window_target, window_builder, &self.gl_config)
                 .unwrap()
         });
@@ -168,7 +183,7 @@ impl Window {
         
     }
     
-    pub fn on_suspended(&mut self) {
+    pub fn suspend(&mut self) {
         // This event is only raised on Android, where the backing NativeWindow for a GL
         // Surface can appear and disappear at any moment.
         println!("Android window removed");

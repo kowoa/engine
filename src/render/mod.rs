@@ -23,8 +23,6 @@ impl Plugin for RenderPlugin {
     }
 }
 
-
-/*
 #[derive(Resource)]
 pub struct RenderObjs {
     obj_vao: u32,
@@ -36,24 +34,6 @@ pub struct RenderObjs {
     specular_map: u32,
     emission_map: u32,
     model: Model,
-}
-*/
-
-#[derive(Resource)]
-pub struct Renderer {
-    program: gl::types::GLuint,
-    vao: gl::types::GLuint,
-    vbo: gl::types::GLuint,
-}
-
-impl Drop for Renderer {
-    fn drop(&mut self) {
-        unsafe {
-            gl::DeleteProgram(self.program);
-            gl::DeleteBuffers(1, &self.vbo);
-            gl::DeleteVertexArrays(1, &self.vao);
-        }
-    }
 }
 
 pub fn resize(width: i32, height: i32) {

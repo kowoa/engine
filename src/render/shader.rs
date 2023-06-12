@@ -1,7 +1,7 @@
 use std::{ffi::CString, fs::File, io::Read, ptr};
 
 use gl::types::{GLint, GLchar};
-use glam::Mat4;
+use glam::{Mat4, Mat3};
 
 pub struct Shader {
     pub id: u32
@@ -111,7 +111,7 @@ impl Shader {
         gl::UniformMatrix4fv(self.get_uniform_loc(name), 1, gl::FALSE, &mat.to_cols_array()[0]);
     }
 
-    pub unsafe fn set_mat3(&self, name: &str, mat: Mat4) {
+    pub unsafe fn set_mat3(&self, name: &str, mat: Mat3) {
         gl::UniformMatrix3fv(self.get_uniform_loc(name), 1, gl::FALSE, &mat.to_cols_array()[0]);
     }
     
