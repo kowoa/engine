@@ -1,8 +1,23 @@
 use std::collections::HashSet;
 
-use bevy_ecs::{system::Resource, world::World};
+use bevy_ecs::{system::Resource, world::World, prelude::Events};
 use glam::Vec2;
 use winit::event::{WindowEvent, VirtualKeyCode, ElementState, MouseScrollDelta};
+
+use crate::ecs::{Plugin, EcsBuilder, Incomplete};
+
+pub struct InputPlugin;
+impl Plugin for InputPlugin {
+    fn build(&self, ecs_builder: EcsBuilder<Incomplete>) -> EcsBuilder<Incomplete> {
+        ecs_builder
+            .insert_resource(Events::<InputEvent>::default())
+            .insert_resource(InputStates {
+                first_mouse: true,
+                curr_mouse_pos: Vec2::ZERO,
+                keyholds: HashSet::new(),
+            })
+    }
+}
 
 #[derive(Resource)]
 pub struct InputStates {
@@ -13,6 +28,7 @@ pub struct InputStates {
 
 pub struct InputEvent(pub Input);
 
+#[derive(Debug)]
 pub struct Input {
     mouse_pos: Option<Vec2>,
     prev_mouse_pos: Option<Vec2>,
@@ -71,25 +87,26 @@ pub fn process_input_event(
         WindowEvent::KeyboardInput { input, .. } => {
             if let Some(key) = input.virtual_keycode {
                 input_changed = true;
+                let mut states = world.get_resource_mut::<InputStates>().unwrap();
                 match input.state {
                     ElementState::Pressed => {
                         input_res.keydowns.get_or_insert(HashSet::new());
                         input_res.keydowns.as_mut().unwrap().insert(key);
-                        let mut states = world.get_resource_mut::<InputStates>().unwrap();
                         states.keyholds.insert(key);
                     },
                     ElementState::Released => {
                         input_res.keyups.get_or_insert(HashSet::new());
                         input_res.keyups.as_mut().unwrap().insert(key);
-                        let mut states = world.get_resource_mut::<InputStates>().unwrap();
-                        assert!(states.keyholds.remove(&key));
+                        // WARNING: key may not be removed if window loses focus before
+                        // user releases key
+                        states.keyholds.remove(&key);
                     },
                 }
             }
         }
         _ => ()
     }
-
+    
     if input_changed {
         world.send_event(InputEvent(input_res));
     }

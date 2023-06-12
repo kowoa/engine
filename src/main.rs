@@ -1,7 +1,7 @@
 use std::{rc::Rc, sync::{Mutex, Arc}, time::{SystemTime, UNIX_EPOCH, Instant, Duration}};
 
-use bevy_ecs::{schedule::{ScheduleLabel, Schedule}, system::{Res, NonSend}, prelude::Events, world::World};
-use input::{process_input_event, Input, InputEvent};
+use bevy_ecs::{schedule::{ScheduleLabel, Schedule}, system::{Res, NonSend}, prelude::{Events, EventReader}, world::World};
+use input::{process_input_event, InputPlugin, InputEvent};
 use winit::event::{Event, WindowEvent, KeyboardInput};
 
 mod common;
@@ -23,6 +23,7 @@ use systems::*;
 
 fn main() {
     EcsBuilder::new()
+        .add_plugin(InputPlugin)
         .insert_resource(Time { current: Instant::now(), delta: Duration::ZERO })
         .add_system(renderer::systems::init, StartupSingleThreaded)
         .add_system(renderer::systems::draw, Render)
