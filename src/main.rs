@@ -16,7 +16,6 @@ mod renderer;
 use renderer::{Renderer};
 
 mod window;
-mod macros;
 
 mod systems;
 use systems::*;
