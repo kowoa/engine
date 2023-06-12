@@ -1,6 +1,7 @@
 use std::ffi::{CString, self};
 use std::num::NonZeroU32;
 
+use bevy_ecs::system::Resource;
 use winit::dpi::PhysicalSize;
 use winit::event_loop::{EventLoop, EventLoopWindowTarget};
 use winit::window::WindowBuilder;
@@ -15,15 +16,7 @@ use glutin::surface::{SwapInterval, Surface, WindowSurface};
 
 use glutin_winit::{self, DisplayBuilder, GlWindow};
 
-use crate::ecs::{EcsBuilder, EcsBuilderState, Plugin};
-
-pub struct WindowPlugin;
-impl Plugin for WindowPlugin {
-    fn build<E>(&self, ecs_builder: EcsBuilder<E>) -> EcsBuilder<E>
-        where E: EcsBuilderState {
-        ecs_builder
-    }
-}
+use crate::ecs::{EcsBuilder, EcsBuilderState, Plugin, Incomplete};
 
 pub struct Window {
     gl_config: Config,
@@ -172,6 +165,10 @@ impl Window {
             && self.gl_surface.replace(gl_surface).is_none()
             && self.window.replace(window).is_none()
         );
+        
+        // Load OpenGL function pointers
+        gl::load_with(|symbol| self.get_proc_address(symbol));
+        
     }
     
     pub fn on_suspended(&mut self) {

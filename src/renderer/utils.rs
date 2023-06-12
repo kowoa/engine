@@ -1,4 +1,4 @@
-use std::{path::Path, ffi::c_void};
+use std::{path::Path, ffi::{c_void, CStr}};
 
 use image::DynamicImage;
 
@@ -53,4 +53,11 @@ pub unsafe fn load_texture(filepath: &str) -> u32 {
     gl::BindTexture(gl::TEXTURE_2D, 0);
         
     texture
+}
+
+pub fn get_gl_string(variant: gl::types::GLenum) -> Option<&'static CStr> {
+    unsafe {
+        let s = gl::GetString(variant);
+        (!s.is_null()).then(|| CStr::from_ptr(s.cast()))
+    }
 }

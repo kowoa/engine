@@ -24,11 +24,11 @@ pub type Ecs = World;
 
 pub trait EcsBuilderState {}
 
-pub struct WithoutRunner;
-impl EcsBuilderState for WithoutRunner {}
+pub struct Incomplete;
+impl EcsBuilderState for Incomplete {}
 
-pub struct WithRunner;
-impl EcsBuilderState for WithRunner {}
+pub struct Complete;
+impl EcsBuilderState for Complete {}
 
 pub struct EcsBuilder<E: EcsBuilderState> {
     world: World,
@@ -37,8 +37,8 @@ pub struct EcsBuilder<E: EcsBuilderState> {
     state: PhantomData<E>
 }
 
-// Methods for EcsBuilder in the WithoutRunner state
-impl EcsBuilder<WithoutRunner> {
+// Methods for EcsBuilder in the Incomplete state
+impl EcsBuilder<Incomplete> {
     pub fn new() -> Self {
         EcsBuilder {
             world: World::new(),
@@ -54,10 +54,15 @@ impl EcsBuilder<WithoutRunner> {
             .add_schedule(Schedule::new(), Startup)
             .add_schedule(Schedule::new(), PreUpdate)
             .add_schedule(Schedule::new(), Update)
-            .add_schedule(Schedule::new(), Render)
+            .add_schedule({
+                let mut render = Schedule::new();
+                render.set_executor_kind(ExecutorKind::SingleThreaded);
+                render
+            }, Render)
     }
 
-    pub fn set_runner(self, runner: fn(Ecs)) -> EcsBuilder<WithRunner> {
+    // Transition to the Complete state once runner is set
+    pub fn set_runner(self, runner: fn(Ecs)) -> EcsBuilder<Complete> {
         EcsBuilder {
             world: self.world,
             schedules: self.schedules,
@@ -66,8 +71,13 @@ impl EcsBuilder<WithoutRunner> {
         }
     }
 
-    pub fn add_resource<R: Resource>(mut self, resource: R) -> Self {
+    pub fn insert_resource<R: Resource>(mut self, resource: R) -> Self {
         self.world.insert_resource(resource);
+        self
+    }
+    
+    pub fn insert_non_send_resource<R: Resource>(mut self, resource: R) -> Self {
+        self.world.insert_non_send_resource(resource);
         self
     }
     
@@ -76,8 +86,9 @@ impl EcsBuilder<WithoutRunner> {
     }
     
     pub fn add_schedule(mut self, schedule: Schedule, label: impl ScheduleLabel) -> Self {
+        let label_clone = label.dyn_clone();
         if self.schedules.insert(label, schedule).is_some() {
-            panic!("schedule with label {label:?} already exists");
+            panic!("schedule with label {label_clone:?} already exists");
         }
         self
     }
@@ -87,14 +98,14 @@ impl EcsBuilder<WithoutRunner> {
         label: impl ScheduleLabel
     ) -> Self {
         let schedule = self.schedules.get_mut(&label)
-            .expect(&format!("schedule with label {label:?} does not exist"));
+            .unwrap_or_else(|| panic!("schedule with label {label:?} does not exist"));
         schedule.add_system(system);
         self
     }
 }
 
-// Methods for EcsBuilder in the WithRunner state
-impl EcsBuilder<WithRunner> {
+// Methods for EcsBuilder in the Complete state
+impl EcsBuilder<Complete> {
     pub fn run(mut self) {
         self.world.insert_resource(self.schedules);
         (self.runner.unwrap())(self.world);
@@ -102,7 +113,7 @@ impl EcsBuilder<WithRunner> {
 }
 
 pub trait Plugin {
-    /// Configure the Ecs to which this plugin is added
-    fn build<E>(&self, ecs_builder: EcsBuilder<E>) -> EcsBuilder<E>
-        where E: EcsBuilderState;
+    /// Configure the Ecs to which this plugin is added.
+    /// The plugin will not be able to call `ecs_builder.run()`.
+    fn build(&self, ecs_builder: EcsBuilder<Incomplete>) -> EcsBuilder<Incomplete>;
 }
