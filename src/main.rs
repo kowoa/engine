@@ -1,3 +1,5 @@
+use std::rc::Rc;
+
 use bevy_ecs::schedule::{ScheduleLabel, Schedule};
 use winit::event::{Event, WindowEvent};
 
@@ -31,7 +33,7 @@ fn main() {
 
 fn runner(mut ecs: Ecs) {
     let (mut window, event_loop) = window::Window::new();
-    let mut renderer = None;
+    let mut renderer = Rc::new(None);
 
     ecs.run_schedule(StartupSingleThreaded);
     ecs.run_schedule(Startup);
@@ -45,7 +47,8 @@ fn runner(mut ecs: Ecs) {
                 // The context needs to be current for the Renderer to set up shaders and
                 // buffers. It also performs function loading, which needs a current context on
                 // WGL.
-                renderer.get_or_insert_with(|| Renderer::new(&window));
+                renderer.get_or_insert_with(|| Some(Renderer::new(&window)));
+                ecs.insert_non_send_resource(renderer.clone());
             },
             Event::Suspended => window.on_suspended(),
             Event::WindowEvent { event, .. } => match event {
@@ -53,8 +56,9 @@ fn runner(mut ecs: Ecs) {
                     if size.width != 0 && size.height != 0 {
                         window.resize(size);
 
-                        let renderer = renderer.as_ref().unwrap();
-                        renderer.resize(size.width as i32, size.height as i32);
+                        if let Some(renderer) = renderer.as_ref().unwrap() {
+                            renderer.resize(size.width as i32, size.height as i32);
+                        }
                     }
                 },
                 WindowEvent::CloseRequested => control_flow.set_exit(),
@@ -71,8 +75,9 @@ fn runner(mut ecs: Ecs) {
                 ecs.run_schedule(Update);
                 ecs.run_schedule(Render);
                 
-                let renderer = renderer.as_ref().unwrap();
-                renderer.draw();
+                if let Some(renderer) = renderer.as_ref().unwrap() {
+                    renderer.draw();
+                }
 
                 window.swap_buffers();
             },

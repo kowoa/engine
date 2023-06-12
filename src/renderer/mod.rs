@@ -1,8 +1,8 @@
-use std::ffi::{CString, CStr};
+use std::{ffi::{CString, CStr}, ops::{DerefMut, Deref}};
 
 use bevy_ecs::system::Resource;
 
-use crate::window::Window;
+use crate::{window::Window};
 
 pub mod camera;
 pub mod mesh;
