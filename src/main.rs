@@ -1,6 +1,7 @@
 use std::{rc::Rc, sync::{Mutex, Arc}};
 
-use bevy_ecs::schedule::{ScheduleLabel, Schedule};
+use bevy_ecs::{schedule::{ScheduleLabel, Schedule}, system::{Res, NonSend}};
+use input::{process_input_event, Input, InputEvent};
 use winit::event::{Event, WindowEvent};
 
 mod common;
@@ -8,6 +9,8 @@ use common::Time;
 
 mod ecs;
 use ecs::*;
+
+mod input;
 
 mod renderer;
 use renderer::Renderer;
@@ -22,10 +25,18 @@ fn setup_graphics() {
     println!("setup graphics");
 }
 
+fn draw(renderer: NonSend<Arc<Mutex<Option<Renderer>>>>) {
+    let guard= renderer.lock().unwrap();
+    if let Some(renderer) = guard.as_ref() {
+        renderer.draw();
+    }
+}
+
 fn main() {
     EcsBuilder::new()
         .add_resource(Time { current: 0.0, delta: 0.0 })
         .add_system(setup_graphics, StartupSingleThreaded)
+        .add_system(draw, Render)
         .set_runner(runner)
         .run();
 }
@@ -36,6 +47,7 @@ fn runner(mut ecs: Ecs) {
 
     event_loop.run(move |event, window_target, control_flow| {
         control_flow.set_wait();
+
         match event {
             Event::Resumed => {
                 let mut guard = renderer.lock().unwrap();
@@ -57,34 +69,40 @@ fn runner(mut ecs: Ecs) {
                 };
             },
             Event::Suspended => window.on_suspended(),
-            Event::WindowEvent { event, .. } => match event {
-                WindowEvent::Resized(size) => if size.width != 0 && size.height != 0 {
-                    window.resize(size);
+            Event::WindowEvent { event, .. } => {
+                // InputEvents may be sent out too often since this only handles one input event at a time
+                let mut input_res = Input::default();
+                let mut input_changed = false;
 
-                    let renderer = renderer.lock().unwrap();
-                    if let Some(renderer) = renderer.as_ref() {
-                        renderer.resize(size.width as i32, size.height as i32);
-                    }
-                },
-                WindowEvent::CloseRequested => control_flow.set_exit(),
-                WindowEvent::KeyboardInput { input, .. } => {
-                    if let Some(key) = input.virtual_keycode {
-                        if key == winit::event::VirtualKeyCode::Escape {
-                            control_flow.set_exit();
+                process_input_event(&event, &mut ecs, &mut input_res, &mut input_changed);
+                
+                if input_changed {
+                    ecs.send_event(InputEvent(input_res));
+                }
+
+                match event {
+                    WindowEvent::Resized(size) => if size.width != 0 && size.height != 0 {
+                        window.resize(size);
+
+                        let renderer = renderer.lock().unwrap();
+                        if let Some(renderer) = renderer.as_ref() {
+                            renderer.resize(size.width as i32, size.height as i32);
+                        }
+                    },
+                    WindowEvent::CloseRequested => control_flow.set_exit(),
+                    WindowEvent::KeyboardInput { input, .. } => {
+                        if let Some(key) = input.virtual_keycode {
+                            if key == winit::event::VirtualKeyCode::Escape {
+                                control_flow.set_exit();
+                            }
                         }
                     }
+                    _ => (),
                 }
-                _ => (),
             },
             Event::MainEventsCleared => {
                 ecs.run_schedule(Update);
                 ecs.run_schedule(Render);
-                
-                let guard = renderer.lock().unwrap();
-                if let Some(renderer) = guard.as_ref() {
-                    renderer.draw();
-                }
-
                 window.swap_buffers();
             },
             _ => (),

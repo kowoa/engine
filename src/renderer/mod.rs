@@ -1,14 +1,29 @@
-use std::{ffi::{CString, CStr}, ops::{DerefMut, Deref}};
+use std::ffi::CStr;
 
 use bevy_ecs::system::Resource;
 
 use crate::{window::Window};
+
+use self::{shader::Shader, model::Model};
 
 pub mod camera;
 pub mod mesh;
 pub mod model;
 pub mod shader;
 pub mod utils;
+
+#[derive(Resource)]
+pub struct RenderData {
+    obj_vao: u32,
+    light_vao: u32,
+    obj_shader: Shader,
+    light_shader: Shader,
+    num_elems: u32,
+    diffuse_map: u32,
+    specular_map: u32,
+    emission_map: u32,
+    model: Model,
+}
 
 #[derive(Resource)]
 pub struct Renderer {
