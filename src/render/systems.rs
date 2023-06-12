@@ -157,8 +157,8 @@ pub fn init(mut commands: Commands) {
     let emission_map = unsafe { load_texture("assets/matrix.jpg") };
     
     let obj_shader = Shader::new(
-        "shaders/object.vert",
-        "shaders/object.frag",
+        "shaders/depth.vert",
+        "shaders/depth.frag",
     );
     
     let light_shader = Shader::new(
@@ -192,6 +192,7 @@ pub fn draw(
     
     unsafe {
         gl::Enable(gl::DEPTH_TEST);
+        //gl::DepthFunc(gl::ALWAYS);
         //gl::Enable(gl::CULL_FACE);
         //gl::CullFace(gl::BACK);
         //gl::FrontFace(gl::CW);
