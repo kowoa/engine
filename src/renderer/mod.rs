@@ -2,7 +2,7 @@ use std::ffi::CStr;
 
 use bevy_ecs::system::Resource;
 
-use crate::{window::Window};
+use crate::{window::Window, ecs::{Plugin, EcsBuilderState, EcsBuilder}};
 
 use self::{shader::Shader, model::Model};
 
@@ -12,8 +12,16 @@ pub mod model;
 pub mod shader;
 pub mod utils;
 
+pub struct RenderPlugin;
+impl Plugin for RenderPlugin {
+    fn build<E>(&self, ecs_builder: EcsBuilder<E>) -> EcsBuilder<E>
+        where E: EcsBuilderState {
+        todo!()
+    }
+}
+
 #[derive(Resource)]
-pub struct RenderData {
+pub struct RenderObjs {
     obj_vao: u32,
     light_vao: u32,
     obj_shader: Shader,

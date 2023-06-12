@@ -50,11 +50,11 @@ impl EcsBuilder<WithoutRunner> {
                 let mut startup_st = Schedule::new();
                 startup_st.set_executor_kind(ExecutorKind::SingleThreaded);
                 startup_st
-            }, StartupSingleThreaded).unwrap()
-            .add_schedule(Schedule::new(), Startup).unwrap()
-            .add_schedule(Schedule::new(), PreUpdate).unwrap()
-            .add_schedule(Schedule::new(), Update).unwrap()
-            .add_schedule(Schedule::new(), Render).unwrap()
+            }, StartupSingleThreaded)
+            .add_schedule(Schedule::new(), Startup)
+            .add_schedule(Schedule::new(), PreUpdate)
+            .add_schedule(Schedule::new(), Update)
+            .add_schedule(Schedule::new(), Render)
     }
 
     pub fn set_runner(self, runner: fn(Ecs)) -> EcsBuilder<WithRunner> {
@@ -75,18 +75,19 @@ impl EcsBuilder<WithoutRunner> {
         plugin.build(self)
     }
     
-    pub fn add_schedule(mut self, schedule: Schedule, label: impl ScheduleLabel) -> Result<Self, &'static str> {
-        match self.schedules.insert(label, schedule) {
-            Some(_) => Err("schedule with label already exists"),
-            None => Ok(self),
+    pub fn add_schedule(mut self, schedule: Schedule, label: impl ScheduleLabel) -> Self {
+        if self.schedules.insert(label, schedule).is_some() {
+            panic!("schedule with label {label:?} already exists");
         }
+        self
     }
     
     pub fn add_system<S>(mut self,
         system: impl IntoSystemConfig<S>,
         label: impl ScheduleLabel
     ) -> Self {
-        let schedule = self.schedules.get_mut(&label).unwrap();
+        let schedule = self.schedules.get_mut(&label)
+            .expect(&format!("schedule with label {label:?} does not exist"));
         schedule.add_system(system);
         self
     }

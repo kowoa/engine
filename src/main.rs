@@ -34,6 +34,7 @@ fn draw(renderer: NonSend<Arc<Mutex<Option<Renderer>>>>) {
 
 fn main() {
     EcsBuilder::new()
+        .add_plugin(RenderPlugin)
         .add_resource(Time { current: Instant::now(), delta: Duration::ZERO })
         .add_system(setup_graphics, StartupSingleThreaded)
         .add_system(draw, Render)
