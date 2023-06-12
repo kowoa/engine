@@ -1,7 +1,6 @@
 use std::ffi::{CString, self};
 use std::num::NonZeroU32;
 
-use bevy_ecs::system::Resource;
 use winit::dpi::PhysicalSize;
 use winit::event_loop::{EventLoop, EventLoopWindowTarget};
 use winit::window::WindowBuilder;
@@ -15,8 +14,6 @@ use glutin::prelude::*;
 use glutin::surface::{SwapInterval, Surface, WindowSurface};
 
 use glutin_winit::{self, DisplayBuilder, GlWindow};
-
-use crate::ecs::{EcsBuilder, EcsBuilderState, Plugin, Incomplete};
 
 pub struct Window {
     gl_config: Config,

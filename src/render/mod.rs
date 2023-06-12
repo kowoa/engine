@@ -2,16 +2,26 @@ use std::ffi::CStr;
 
 use bevy_ecs::system::{Resource, Commands, Res};
 
-use crate::{window::Window, ecs::{Plugin, EcsBuilderState, EcsBuilder, Incomplete}};
+use crate::{window::Window, ecs::{Plugin, EcsBuilderState, EcsBuilder, Incomplete, Render, StartupSingleThreaded}};
 
-use self::{shader::Shader, model::Model};
+use self::{shader::Shader, model::Model, camera::CameraPlugin};
 
-pub mod camera;
-pub mod mesh;
-pub mod model;
-pub mod shader;
-pub mod utils;
-pub mod systems;
+mod camera;
+mod mesh;
+mod model;
+mod shader;
+mod utils;
+mod systems;
+
+pub struct RenderPlugin;
+impl Plugin for RenderPlugin {
+    fn build(&self, ecs_builder: EcsBuilder<Incomplete>) -> EcsBuilder<Incomplete> {
+        ecs_builder
+            .add_plugin(CameraPlugin)
+            .add_system(systems::init, StartupSingleThreaded)
+            .add_system(systems::draw, Render)
+    }
+}
 
 
 /*

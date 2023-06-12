@@ -2,6 +2,7 @@ use std::{rc::Rc, sync::{Mutex, Arc}, time::{SystemTime, UNIX_EPOCH, Instant, Du
 
 use bevy_ecs::{schedule::{ScheduleLabel, Schedule}, system::{Res, NonSend}, prelude::{Events, EventReader}, world::World};
 use input::{process_input_event, InputPlugin, InputEvent};
+use render::RenderPlugin;
 use winit::event::{Event, WindowEvent, KeyboardInput};
 
 mod common;
@@ -9,23 +10,15 @@ use common::{Time, update_time_res};
 
 mod ecs;
 use ecs::*;
-
 mod input;
-
-mod renderer;
-use renderer::{Renderer};
-
+mod render;
 mod window;
-
-mod systems;
-use systems::*;
 
 fn main() {
     EcsBuilder::new()
         .add_plugin(InputPlugin)
+        .add_plugin(RenderPlugin)
         .insert_resource(Time { current: Instant::now(), delta: Duration::ZERO })
-        .add_system(renderer::systems::init, StartupSingleThreaded)
-        .add_system(renderer::systems::draw, Render)
         .set_runner(runner)
         .build()
         .run();
@@ -61,7 +54,7 @@ fn runner(mut world: World) {
                         window.resize(size);
 
                         if renderer_initialized {
-                            renderer::resize(size.width as i32, size.height as i32);
+                            render::resize(size.width as i32, size.height as i32);
                         }
                     },
                     WindowEvent::CloseRequested => control_flow.set_exit(),

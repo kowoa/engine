@@ -2,7 +2,6 @@ use bevy_ecs::system::{Commands, Res};
 
 use super::{utils::get_gl_string, create_shader, VERTEX_SHADER_SOURCE, FRAGMENT_SHADER_SOURCE, VERTEX_DATA, Renderer};
 
-
 pub fn init(mut commands: Commands) {
     unsafe {
         if let Some(renderer) = get_gl_string(gl::RENDERER) {

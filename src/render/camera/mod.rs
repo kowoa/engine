@@ -1,12 +1,26 @@
+use bevy_ecs::prelude::{Bundle, Component};
 use glam::{Vec3, Mat4, Vec2};
 
-use crate::common::Time;
+use crate::{common::Time, ecs::{Plugin, Startup, Update}};
+
+mod systems;
 
 const YAW: f32 = -90.0;
 const PITCH: f32 = 0.0;
 const SPEED: f32 = 10.0;
 const ROT_SPEED: f32 = 50.0;
 const ZOOM: f32 = 45.0;
+
+pub struct CameraPlugin;
+impl Plugin for CameraPlugin {
+    fn build(&self, ecs_builder: crate::ecs::EcsBuilder<crate::ecs::Incomplete>) -> crate::ecs::EcsBuilder<crate::ecs::Incomplete> {
+        ecs_builder
+            .add_system(systems::spawn, Startup)
+            .add_system(systems::process_input, Update)
+            .add_system(systems::process_movement_input, Update)
+            .add_system(systems::process_rotation_input, Update)
+    }
+}
 
 pub enum CameraMoveDirection {
     None,
@@ -16,6 +30,7 @@ pub enum CameraMoveDirection {
     Right,
 }
 
+#[derive(Component)]
 pub struct Camera {
     pub position: Vec3,
     pub forward: Vec3,
@@ -27,6 +42,7 @@ pub struct Camera {
     pub zoom: f32,
 }
 
+#[derive(Component)]
 pub struct CameraMovement {
     pub direction: CameraMoveDirection,
     pub speed: f32,
@@ -34,6 +50,7 @@ pub struct CameraMovement {
     pub rotation_speed: f32,
 }
 
+#[derive(Bundle)]
 pub struct CameraBundle {
     pub camera: Camera,
     pub movement: CameraMovement,
@@ -164,5 +181,11 @@ impl Default for CameraMovement {
             constrain_pitch: false,
             rotation_speed: ROT_SPEED,
         }
+    }
+}
+
+impl Default for CameraBundle {
+    fn default() -> Self {
+        Self { camera: Camera::default(), movement: CameraMovement::default() }
     }
 }

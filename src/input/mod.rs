@@ -21,20 +21,20 @@ impl Plugin for InputPlugin {
 
 #[derive(Resource)]
 pub struct InputStates {
-    first_mouse: bool,
-    curr_mouse_pos: Vec2,
-    keyholds: HashSet<VirtualKeyCode>,
+    pub first_mouse: bool,
+    pub curr_mouse_pos: Vec2,
+    pub keyholds: HashSet<VirtualKeyCode>,
 }
 
 pub struct InputEvent(pub Input);
 
 #[derive(Debug)]
 pub struct Input {
-    mouse_pos: Option<Vec2>,
-    prev_mouse_pos: Option<Vec2>,
-    mouse_scroll_delta: f32,
-    keydowns: Option<HashSet<VirtualKeyCode>>,
-    keyups: Option<HashSet<VirtualKeyCode>>,
+    pub mouse_pos: Option<Vec2>,
+    pub prev_mouse_pos: Option<Vec2>,
+    pub mouse_scroll_delta: f32,
+    pub keydowns: Option<HashSet<VirtualKeyCode>>,
+    pub keyups: Option<HashSet<VirtualKeyCode>>,
 }
 
 impl Default for Input {
