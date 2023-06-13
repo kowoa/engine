@@ -10,8 +10,7 @@ use super::{utils::load_texture, Model, camera::Camera, RenderObjs, shader::Shad
 
 pub fn init(mut commands: Commands) {
     let (obj_vao, light_vao, num_elems) = unsafe {
-        // vertices for positions
-        let positions: [f32; 288] = [
+        let vertices: [f32; 288] = [
             // positions      // normals        // texture coords
             -0.5, -0.5, -0.5,  0.0,  0.0, -1.0,  0.0,  0.0,
              0.5, -0.5, -0.5,  0.0,  0.0, -1.0,  1.0,  0.0,
@@ -76,8 +75,8 @@ pub fn init(mut commands: Commands) {
             gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
             gl::BufferData(
                 gl::ARRAY_BUFFER,
-                (positions.len() * size_of::<GLfloat>()) as GLsizeiptr,
-                &positions[0] as *const f32 as *const c_void,
+                (vertices.len() * size_of::<GLfloat>()) as GLsizeiptr,
+                &vertices[0] as *const f32 as *const c_void,
                 gl::STATIC_DRAW,
             );
 
@@ -116,8 +115,8 @@ pub fn init(mut commands: Commands) {
             gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
             gl::BufferData(
                 gl::ARRAY_BUFFER,
-                (positions.len() * size_of::<GLfloat>()) as GLsizeiptr,
-                &positions[0] as *const f32 as *const c_void,
+                (vertices.len() * size_of::<GLfloat>()) as GLsizeiptr,
+                &vertices[0] as *const f32 as *const c_void,
                 gl::STATIC_DRAW,
             );
 
@@ -157,8 +156,8 @@ pub fn init(mut commands: Commands) {
     let emission_map = unsafe { load_texture("assets/matrix.jpg") };
     
     let obj_shader = Shader::new(
-        "shaders/depth.vert",
-        "shaders/depth.frag",
+        "shaders/object.vert",
+        "shaders/object.frag",
     );
     
     let light_shader = Shader::new(
@@ -185,7 +184,7 @@ pub fn init(mut commands: Commands) {
 pub fn draw(
     cam_qry: Query<&Camera>,
     render_objs: Res<RenderObjs>,
-    window_params: Res<WindowInfo>,
+    window_info: Res<WindowInfo>,
     time: Res<Time>,
 ) {
     let cam = cam_qry.single();
@@ -206,29 +205,13 @@ pub fn draw(
             Vec3::new(-4.0, 2.0, -12.0),
             Vec3::new(0.0, 0.0, -3.0),
         ];
-
-        { // draw the light cubes for point lights
-            let shader = &render_objs.light_shader;
-            shader.activate();
-            gl::BindVertexArray(render_objs.light_vao);
-            
-            // vertex shader uniforms
-            let view = cam.get_view_mat();
-            let proj = Mat4::perspective_rh(
-                45.0f32.to_radians(),
-                window_params.width as f32 / window_params.height as f32,
-                0.1,
-                100.0,
-            );
-            shader.set_mat4("view", view);
-            shader.set_mat4("proj", proj);
-            
-            for pos in point_light_positions {
-                let model = Mat4::from_translation(pos) * Mat4::from_scale(Vec3::new(0.25, 0.25, 0.25));
-                shader.set_mat4("model", model);
-                gl::DrawElements(gl::TRIANGLES, render_objs.num_elems as i32, gl::UNSIGNED_INT, ptr::null());
-            }
-        }
+        
+        draw_point_lights(
+            &point_light_positions,
+            &render_objs,
+            &window_info,
+            cam,
+        );
         
 
         { // draw the object cube(s)
@@ -241,7 +224,7 @@ pub fn draw(
             let view = cam.get_view_mat();
             let proj = Mat4::perspective_rh(
                 cam.zoom.to_radians(),
-                window_params.width as f32 / window_params.height as f32,
+                window_info.width as f32 / window_info.height as f32,
                 0.1,
                 100.0,
             );
@@ -292,5 +275,32 @@ pub fn draw(
             
             render_objs.model.draw(shader);
         }
+    }
+}
+
+unsafe fn draw_point_lights(
+    positions: &[Vec3],
+    render_objs: &RenderObjs,
+    window_info: &WindowInfo,
+    camera: &Camera,
+) {
+    let shader = &render_objs.light_shader;
+    shader.activate();
+    gl::BindVertexArray(render_objs.light_vao);
+    
+    // vertex shader uniforms
+    let view = camera.get_view_mat();
+    let proj = Mat4::perspective_rh(
+        45.0f32.to_radians(),
+        window_info.width as f32 / window_info.height as f32,
+        0.1,
+        100.0,
+    );
+    shader.set_mat4("view", view);
+    shader.set_mat4("proj", proj);
+    for pos in positions {
+        let model = Mat4::from_translation(*pos) * Mat4::from_scale(Vec3::new(0.25, 0.25, 0.25));
+        shader.set_mat4("model", model);
+        gl::DrawElements(gl::TRIANGLES, render_objs.num_elems as i32, gl::UNSIGNED_INT, ptr::null());
     }
 }
