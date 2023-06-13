@@ -25,10 +25,10 @@ impl Plugin for RenderPlugin {
 
 #[derive(Resource)]
 pub struct RenderObjs {
-    obj_vao: u32,
-    light_vao: u32,
-    obj_shader: Shader,
-    light_shader: Shader,
+    lit_cube_vao: u32,
+    unlit_cube_vao: u32,
+    lit_shader: Shader,
+    unlit_shader: Shader,
     num_elems: u32,
     diffuse_map: u32,
     specular_map: u32,

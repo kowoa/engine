@@ -4,12 +4,12 @@ use bevy_ecs::{system::{Query, Res, Commands}};
 use gl::types::{GLfloat, GLsizei, GLsizeiptr};
 use glam::{Vec3, Mat4, Mat3};
 
-use crate::{common::Time, window::WindowInfo};
+use crate::{common::Time, window::{WindowInfo, self}};
 
 use super::{utils::load_texture, Model, camera::Camera, RenderObjs, shader::Shader};
 
 pub fn init(mut commands: Commands) {
-    let (obj_vao, light_vao, num_elems) = unsafe {
+    let (lit_cube_vao, unlit_cube_vao, num_elems) = unsafe {
         let vertices: [f32; 288] = [
             // positions      // normals        // texture coords
             -0.5, -0.5, -0.5,  0.0,  0.0, -1.0,  0.0,  0.0,
@@ -55,7 +55,7 @@ pub fn init(mut commands: Commands) {
             -0.5,  0.5, -0.5,  0.0,  1.0,  0.0,  0.0,  1.0,
         ];
         
-        // indices for position vertices
+        // indices for vertices
         let indices: [i32; 36] = core::array::from_fn(|i| i as i32);
 
         // vertex buffer object
@@ -66,8 +66,7 @@ pub fn init(mut commands: Commands) {
         let mut ebo = 0;
         gl::GenBuffers(1, &mut ebo);
         
-        // vertex array object for object
-        let obj_vao = {
+        let lit_cube_vao = {
             let mut vao = 0;
             gl::GenVertexArrays(1, &mut vao);
             gl::BindVertexArray(vao);
@@ -106,8 +105,7 @@ pub fn init(mut commands: Commands) {
             vao
         };
 
-        // vertex array object for light
-        let light_vao = {
+        let unlit_cube_vao = {
             let mut vao = 0;
             gl::GenVertexArrays(1, &mut vao);
             gl::BindVertexArray(vao);
@@ -146,7 +144,7 @@ pub fn init(mut commands: Commands) {
         // draw in wireframe polygons
         //gl::PolygonMode(gl::FRONT_AND_BACK, gl::LINE);
         
-        (obj_vao, light_vao, indices.len() as u32)
+        (lit_cube_vao, unlit_cube_vao, indices.len() as u32)
     };
     
     let diffuse_map = unsafe { load_texture("assets/container2.png") };
@@ -155,23 +153,26 @@ pub fn init(mut commands: Commands) {
     
     let emission_map = unsafe { load_texture("assets/matrix.jpg") };
     
-    let obj_shader = Shader::new(
-        "shaders/object.vert",
-        "shaders/object.frag",
+    let lit_shader = Shader::new(
+        "shaders/lit.vert",
+        "shaders/lit.frag",
     );
+
     
-    let light_shader = Shader::new(
-        "shaders/light.vert",
-        "shaders/light.frag",
+    let unlit_shader = Shader::new(
+        "shaders/unlit.vert",
+        "shaders/unlit.frag",
     );
     
     let model = Model::new("assets/backpack/backpack.obj");
     
     commands.insert_resource(RenderObjs {
-        obj_vao,
-        light_vao,
-        obj_shader,
-        light_shader,
+        lit_cube_vao,
+        unlit_cube_vao,
+
+        lit_shader,
+        unlit_shader,
+
         num_elems,
         diffuse_map,
         specular_map,
@@ -206,87 +207,97 @@ pub fn draw(
             Vec3::new(0.0, 0.0, -3.0),
         ];
         
+        /*
         draw_point_lights(
             &point_light_positions,
             &render_objs,
             &window_info,
             cam,
         );
-        
+        */
 
-        { // draw the object cube(s)
-            // bind textures
-            let shader = &render_objs.obj_shader;
-            shader.activate();
-            
-            // vertex shader uniforms
-            let model = Mat4::from_translation(Vec3::ZERO);
-            let view = cam.get_view_mat();
-            let proj = Mat4::perspective_rh(
-                cam.zoom.to_radians(),
-                window_info.width as f32 / window_info.height as f32,
-                0.1,
-                100.0,
-            );
-            let normal_mat = {
-                let mat = (view * model)
-                .inverse()
-                .transpose();
-                // cast Matrix4 to Matrix3
-                Mat3::from_mat4(mat)
-            };
-            shader.set_mat4("model", model);
-            shader.set_mat4("view", view);
-            shader.set_mat4("proj", proj);
-            shader.set_mat3("normal_mat", normal_mat);
-            
-            // fragment shader uniforms
-            // material textures are handled by the mesh's draw method
-            shader.set_float("material.shininess", 64.0);
-            
-            shader.set_float("time", time.current);
-
-            // lights
-            shader.set_vec3("dir_light.direction", -0.2, -1.0, -0.3);
-            shader.set_vec3("dir_light.ambient", 0.05, 0.05, 0.05);
-            shader.set_vec3("dir_light.diffuse", 0.4, 0.4, 0.4);
-            shader.set_vec3("dir_light.specular", 0.5, 0.5, 0.5);
-            
-            for (i, pos) in point_light_positions.iter().enumerate() {
-                shader.set_vec3(format!("point_lights[{i}].position").as_str(), pos.x, pos.y, pos.z);
-                shader.set_vec3(format!("point_lights[{i}].ambient").as_str(), 0.05, 0.05, 0.05);
-                shader.set_vec3(format!("point_lights[{i}].diffuse").as_str(), 0.8, 0.8, 0.8);
-                shader.set_vec3(format!("point_lights[{i}].specular").as_str(), 1.0, 1.0, 1.0);
-                shader.set_float(format!("point_lights[{i}].att_constant").as_str(), 1.0);
-                shader.set_float(format!("point_lights[{i}].att_linear").as_str(), 0.09);
-                shader.set_float(format!("point_lights[{i}].att_quadratic").as_str(), 0.032);
-            }
-
-            shader.set_vec3("spot_light.position", 0.0, 0.0, 0.0);
-            shader.set_vec3("spot_light.direction", 0.0, 0.0, -1.0);
-            shader.set_float("spot_light.cutoff_angle_cos", 12.5f32.to_radians().cos());
-            shader.set_float("spot_light.outer_cutoff_angle_cos", 15.0f32.to_radians().cos());
-            shader.set_vec3("spot_light.ambient", 0.0, 0.0, 0.0);
-            shader.set_vec3("spot_light.diffuse", 1.0, 1.0, 1.0);
-            shader.set_vec3("spot_light.specular", 1.0, 1.0, 1.0);
-            shader.set_float("spot_light.att_constant", 1.0);
-            shader.set_float("spot_light.att_linear", 0.09);
-            shader.set_float("spot_light.att_quadratic", 0.032);
-            
-            render_objs.model.draw(shader);
-        }
+        let shader = &render_objs.lit_shader;
+        shader.activate();
+        set_lit_shader_uniforms(
+            &render_objs,
+            cam,
+            &window_info,
+            &time,
+            &point_light_positions
+        );
+        render_objs.model.draw(shader);
     }
 }
 
-unsafe fn draw_point_lights(
-    positions: &[Vec3],
+unsafe fn set_lit_shader_uniforms(
     render_objs: &RenderObjs,
-    window_info: &WindowInfo,
     camera: &Camera,
+    window_info: &WindowInfo,
+    time: &Time,
+    point_light_positions: &[Vec3],
 ) {
-    let shader = &render_objs.light_shader;
+    let shader = &render_objs.lit_shader;
+
+    // vertex shader uniforms
+    let model = Mat4::from_translation(Vec3::ZERO);
+    let view = camera.get_view_mat();
+    let proj = camera.get_projection_mat(
+        window_info.width as f32,
+        window_info.height as f32,
+    );
+    let normal_mat = {
+        let mat = (view * model)
+            .inverse()
+            .transpose();
+        Mat3::from_mat4(mat)
+    };
+    shader.set_mat4("model", model);
+    shader.set_mat4("view", view);
+    shader.set_mat4("proj", proj);
+    shader.set_mat3("normal_mat", normal_mat);
+    
+    // fragment shader uniforms
+    // material textures are handled by the mesh's draw method
+    shader.set_float("material.shininess", 64.0);
+    
+    shader.set_float("time", time.current);
+
+    // lights
+    shader.set_vec3("dir_light.direction", -0.2, -1.0, -0.3);
+    shader.set_vec3("dir_light.ambient", 0.05, 0.05, 0.05);
+    shader.set_vec3("dir_light.diffuse", 0.4, 0.4, 0.4);
+    shader.set_vec3("dir_light.specular", 0.5, 0.5, 0.5);
+    
+    for (i, pos) in point_light_positions.iter().enumerate() {
+        shader.set_vec3(format!("point_lights[{i}].position").as_str(), pos.x, pos.y, pos.z);
+        shader.set_vec3(format!("point_lights[{i}].ambient").as_str(), 0.05, 0.05, 0.05);
+        shader.set_vec3(format!("point_lights[{i}].diffuse").as_str(), 0.8, 0.8, 0.8);
+        shader.set_vec3(format!("point_lights[{i}].specular").as_str(), 1.0, 1.0, 1.0);
+        shader.set_float(format!("point_lights[{i}].att_constant").as_str(), 1.0);
+        shader.set_float(format!("point_lights[{i}].att_linear").as_str(), 0.09);
+        shader.set_float(format!("point_lights[{i}].att_quadratic").as_str(), 0.032);
+    }
+
+    shader.set_vec3("spot_light.position", 0.0, 0.0, 0.0);
+    shader.set_vec3("spot_light.direction", 0.0, 0.0, -1.0);
+    shader.set_float("spot_light.cutoff_angle_cos", 12.5f32.to_radians().cos());
+    shader.set_float("spot_light.outer_cutoff_angle_cos", 15.0f32.to_radians().cos());
+    shader.set_vec3("spot_light.ambient", 0.0, 0.0, 0.0);
+    shader.set_vec3("spot_light.diffuse", 1.0, 1.0, 1.0);
+    shader.set_vec3("spot_light.specular", 1.0, 1.0, 1.0);
+    shader.set_float("spot_light.att_constant", 1.0);
+    shader.set_float("spot_light.att_linear", 0.09);
+    shader.set_float("spot_light.att_quadratic", 0.032);
+}
+
+unsafe fn set_unlit_shader_uniforms(
+    render_objs: &RenderObjs,
+    camera: &Camera,
+    window_info: &WindowInfo,
+) {
+    let shader = &render_objs.unlit_shader;
     shader.activate();
-    gl::BindVertexArray(render_objs.light_vao);
+    gl::BindVertexArray(render_objs.unlit_cube_vao);
     
     // vertex shader uniforms
     let view = camera.get_view_mat();
@@ -298,9 +309,18 @@ unsafe fn draw_point_lights(
     );
     shader.set_mat4("view", view);
     shader.set_mat4("proj", proj);
+}
+
+unsafe fn draw_point_lights(
+    positions: &[Vec3],
+    render_objs: &RenderObjs,
+    window_info: &WindowInfo,
+    camera: &Camera,
+) {
+    set_unlit_shader_uniforms(render_objs, camera, window_info);
     for pos in positions {
         let model = Mat4::from_translation(*pos) * Mat4::from_scale(Vec3::new(0.25, 0.25, 0.25));
-        shader.set_mat4("model", model);
+        render_objs.unlit_shader.set_mat4("model", model);
         gl::DrawElements(gl::TRIANGLES, render_objs.num_elems as i32, gl::UNSIGNED_INT, ptr::null());
     }
 }

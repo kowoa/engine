@@ -77,6 +77,15 @@ impl Camera {
     pub fn get_view_mat(&self) -> Mat4 {
         Mat4::look_at_rh(self.position, self.position + self.forward, self.up)
     }
+    
+    pub fn get_projection_mat(&self, viewport_width: f32, viewport_height: f32) -> Mat4 {
+        Mat4::perspective_rh(
+            self.zoom.to_radians(),
+            viewport_width / viewport_height,
+            0.1,
+            100.0,
+        )
+    }
 
     pub fn from_position(x: f32, y: f32, z: f32) -> Self {
         Camera {
