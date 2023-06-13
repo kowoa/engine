@@ -44,9 +44,7 @@ impl Window {
         // this condition and always pass the window builder.
         let window_builder =
             if cfg!(wgl_backend) {
-                Some(WindowBuilder::new()
-                    .with_inner_size(PhysicalSize::new(window_info.width, window_info.height))
-                    .with_transparent(true))
+                Some(get_window_builder(window_info))
             } else { None };
 
         // The template will match only the configurations supporting rendering
@@ -151,9 +149,7 @@ impl Window {
         println!("Android window available");
 
         let window = self.window.take().unwrap_or_else(|| {
-            let window_builder = WindowBuilder::new()
-                .with_inner_size(PhysicalSize::new(window_info.width, window_info.height))
-                .with_transparent(true);
+            let window_builder = get_window_builder(window_info);
             glutin_winit::finalize_window(window_target, window_builder, &self.gl_config)
                 .unwrap()
         });
@@ -214,3 +210,9 @@ impl Window {
     }
 }
 
+fn get_window_builder(window_info: &WindowInfo) -> WindowBuilder {
+    WindowBuilder::new()
+        .with_inner_size(PhysicalSize::new(window_info.width, window_info.height))
+        .with_transparent(true)
+        .with_resizable(false)
+}
